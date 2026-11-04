@@ -1,0 +1,13 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {metrics,compareExperiment,mealSchema,reviewSchema,experimentSchema,exportCsv,localInsights} from '../lib/domain.ts';
+const row={id:'one',date:'2026-11-01',dish:'Рис',meal:'Обед',preparedKg:20,servedKg:15,plateKg:3,portions:100,note:''};
+test('weighted grams use total portions, not average of daily averages',()=>{const m=metrics([row,{...row,id:'two',plateKg:1,portions:10}]);assert.equal(m.grams,4000/110);assert.equal(m.unserved,10);assert.equal(m.plates,4);});
+test('empty dataset does not invent success or divide by zero',()=>{assert.equal(metrics([]).grams,0);assert.equal(localInsights({meals:[],reviews:[],experiments:[]}).recommendations.length,0);});
+test('reject impossible weights, zero portions and impossible calendar dates',()=>{for(const patch of [{servedKg:21},{plateKg:16},{portions:0},{portions:1.2},{date:'2026-02-31'},{preparedKg:-1}])assert.equal(mealSchema.safeParse({...row,...patch}).success,false);});
+test('measurements and review limits are enforced',()=>{assert.equal(mealSchema.safeParse(row).success,true);assert.equal(reviewSchema.safeParse({date:'2026-11-01',dish:'Рис',rating:6,reason:'Вкус',text:'',language:'ru'}).success,false);});
+const experiment={id:'e',title:'Тест подачи',dish:'Рис',action:'Меняем время подачи блюда',beforeStart:'2026-11-01',beforeEnd:'2026-11-01',afterStart:'2026-11-02',afterEnd:'2026-11-03'};
+test('experiment uses only matching dish and nonoverlapping periods',()=>{assert.equal(experimentSchema.safeParse(experiment).success,true);assert.equal(experimentSchema.safeParse({...experiment,afterStart:'2026-11-01'}).success,false);const c=compareExperiment(experiment,[row,{...row,id:'two',date:'2026-11-02',plateKg:1.5},{...row,id:'other',dish:'Суп',date:'2026-11-02',plateKg:14}]);assert.equal(c.change,50);assert.equal(c.after.portions,100);});
+test('missing after period gives no fabricated improvement',()=>assert.equal(compareExperiment(experiment,[row]).change,null));
+test('CSV preserves Cyrillic, escapes quotes and neutralizes formulas',()=>{const csv=exportCsv([{...row,dish:'=SUM(1,2)',note:'"Комментарий"'}]);assert.ok(csv.startsWith('\uFEFF'));assert.ok(csv.includes("'=SUM"));assert.ok(csv.includes('""Комментарий""'));});
+test('heuristic recommendations identify real source records',()=>{const a=localInsights({meals:[row],reviews:[],experiments:[]});assert.equal(a.source,'rules');assert.ok(a.recommendations.every(r=>r.evidenceIds.every(id=>id==='one')));assert.ok(a.recommendations.some(r=>r.observation.includes('не подтверждённые отходы')));});

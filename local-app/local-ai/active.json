@@ -1,0 +1,13 @@
+{
+  "backend": "e5",
+  "triage": true,
+  "review_required": true,
+  "base_model": "intfloat/multilingual-e5-small",
+  "weights": "runs\\e5-20261104T193236Z\\weights.safetensors",
+  "report": "runs\\e5-20261104T193236Z\\triage-report.json",
+  "labels": [
+    "complaint",
+    "positive",
+    "insufficient"
+  ]
+}

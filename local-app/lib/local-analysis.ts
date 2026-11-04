@@ -1,0 +1,21 @@
+import {localInsights, type Analysis, type DataSet, type Insight} from './domain';
+export const reviewLabels=['temperature','taste','portion','time','positive','other','insufficient','mixed','complaint'] as const;
+export type ClassifiedReview={id:string;label:typeof reviewLabels[number]};
+const guidance:Record<string,{title:string;action:string;check:string}>={
+ complaint:{title:'Отзывы с жалобами',action:'Прочитайте отмеченные отзывы и уточните причины по анкете. Модель выделяет жалобу, но точную причину подтверждает исследователь.',check:'Сопоставьте подтверждённые причины с измерениями отходов и повторите тот же опрос после согласованного изменения.'},
+ temperature:{title:'Температура подачи',action:'Обсудите с ответственным за питание время от приготовления до выдачи и проверьте условия подачи.',check:'Повторите одинаковый опрос и взвешивание при следующей подаче этого блюда.'},
+ taste:{title:'Вкус и консистенция',action:'Уточните в коротком опросе, что именно не понравилось. Передайте наблюдения ответственному за питание.',check:'Сравните повторные отзывы и остатки того же блюда при сопоставимых условиях.'},
+ portion:{title:'Размер порции',action:'Обсудите индивидуальные потребности с ответственным за питание. Не уменьшайте питание автоматически по ответу модели.',check:'Учитывайте одновременно остатки, оценки учеников и случаи, когда порции не хватило.'},
+ time:{title:'Время на обед',action:'Понаблюдайте за очередью и временем, которое остаётся ученикам для еды.',check:'Измерьте ожидание и остатки до и после согласованного изменения организации выдачи.'},
+ other:{title:'Другие замечания',action:'Просмотрите исходные отзывы и передайте конкретные замечания ответственному сотруднику. Сообщения о загрязнении еды или посуды требуют проверки сотрудником.',check:'Уточните характер замечаний и проверьте, повторяются ли они.'},
+ mixed:{title:'Несколько причин в одном отзыве',action:'Вручную разберите отмеченные отзывы: модель обнаружила несколько тем, их нужно уточнить отдельно.',check:'В следующем опросе разрешите отметить несколько причин и сопоставьте их с измерениями.'}
+};
+export function composeLocalAnalysis(data:DataSet,classified:ClassifiedReview[],model:string,reviewed=false):Analysis{
+ const ids=new Set(data.reviews.map(r=>r.id));
+ if(classified.some(r=>!ids.has(r.id)||!reviewLabels.includes(r.label))||new Set(classified.map(r=>r.id)).size!==classified.length)throw new Error('Некорректные ссылки локальной модели');
+ const groups=new Map<string,string[]>();for(const row of classified)groups.set(row.label,[...(groups.get(row.label)||[]),row.id]);
+ const recommendations:Insight[]=[...groups].filter(([label])=>guidance[label]).sort((a,b)=>b[1].length-a[1].length).slice(0,3).map(([label,evidenceIds])=>({...guidance[label],observation:`${reviewed?"После проверки исследователем отнесено":"Локальная модель отнесла"} ${evidenceIds.length} из ${classified.length} разобранных отзывов к теме «${guidance[label].title.toLowerCase()}». Проверьте исходные тексты.`,hypothesis:'Категория модели помогает выбрать вопрос для проверки, но не устанавливает причину пищевых отходов.',evidenceIds:evidenceIds.slice(0,12)}));
+ const rules=localInsights({...data,reviews:[]});
+ if(!recommendations.length)recommendations.push(...rules.recommendations.slice(0,2));
+ return {source:'local',model,createdAt:new Date().toISOString(),summary:`Модель предложила метки для ${classified.length} отзывов. ${reviewed?"Ниже — результаты проверки исследователем.":"Метки требуют проверки."} Положительных: ${groups.get('positive')?.length||0}; недостаточно сведений: ${groups.get('insufficient')?.length||0}. Числовые показатели рассчитаны программой. Действия ниже подобраны по правилам программы с учётом указанных категорий.`,recommendations,limitations:['Дообучение выполнено на небольшой учебной выборке, а не на реальных отзывах вашей школы.','Обрабатываются до 24 последних непустых отзывов, первые 300 символов каждого. Категории могут содержать ошибки.','Весовые показатели вычисляются кодом. Текст действий — правила приложения, а не свободная генерация модели.','Данные и модель работают на этом компьютере. Автоматической отправки в Google или другие облака нет.','Изменения меню и порций согласует ответственный за питание.']};
+}

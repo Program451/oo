@@ -1,0 +1,10 @@
+import {build} from 'esbuild';
+import {mkdir,readFile,writeFile,copyFile} from 'node:fs/promises';
+await mkdir('local-dist',{recursive:true});
+await build({entryPoints:['local-ai/entry.tsx'],bundle:true,outfile:'local-dist/app.js',platform:'browser',format:'esm',minify:true,jsx:'automatic',define:{'process.env.NODE_ENV':'"production"'},tsconfig:'tsconfig.json'});
+await build({stdin:{contents:'export * from "./lib/domain"; export * from "./lib/demo"; export * from "./lib/local-analysis";',resolveDir:process.cwd(),loader:'ts'},bundle:true,outfile:'local-dist/domain.mjs',platform:'node',format:'esm',minify:false});
+const css=(await readFile('app/globals.css','utf8')).split(/\r?\n/).filter(line=>!line.trimStart().startsWith('@import ')).join('\n');
+await writeFile('local-dist/app.css',css);
+await copyFile('public/favicon.svg','local-dist/favicon.svg');
+await writeFile('local-dist/index.html','<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Asyl As — локальный ИИ</title><link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/app.css"></head><body><div id="root"></div><script type="module" src="/app.js"></script></body></html>');
+console.log('Local offline application built in local-dist/');

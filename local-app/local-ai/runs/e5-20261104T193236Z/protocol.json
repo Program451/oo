@@ -1,0 +1,28 @@
+{
+  "base_model": "intfloat/multilingual-e5-small",
+  "method": "Gradient fine-tuning of the last two transformer layers and an eight-class linear head",
+  "seed": 42,
+  "epochs_max": 12,
+  "encoder_learning_rate": 1e-05,
+  "head_learning_rate": 0.001,
+  "batch_size": 8,
+  "split_counts": {
+    "train": 128,
+    "validation": 32,
+    "test": 64
+  },
+  "dataset_source": "Assistant-authored synthetic examples, not real pupil observations",
+  "dataset_hash": "d22591e7bccb99e0d89b56d72b567ad0d5236287e880942b951964ca1724a280",
+  "model_source": {
+    "model_id": "intfloat/multilingual-e5-small",
+    "revision": "614241f622f53c4eeff9890bdc4f31cfecc418b3",
+    "license": "mit",
+    "source": "https://huggingface.co/intfloat/multilingual-e5-small"
+  },
+  "selection": "Lowest validation cross-entropy; final 64 examples are never used for fitting or checkpoint selection",
+  "comparison_rule": "Prefer E5 over Qwen only if selected validation macro F1 exceeds Qwen validation macro F1 0.7749368686868687; require final macro F1 >= 0.75",
+  "created_at": "2026-11-04T19:32:36.807050+00:00",
+  "gpu": "NVIDIA GeForce RTX 3050 6GB Laptop GPU",
+  "trainable_parameters": 3552008,
+  "total_parameters": 117656840
+}

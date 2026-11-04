@@ -1,0 +1,4 @@
+import {sqliteTable,text,integer,index,uniqueIndex} from 'drizzle-orm/sqlite-core';
+export const surveys=sqliteTable('surveys',{id:text('id').primaryKey(),title:text('title').notNull(),kind:text('kind').notNull(),dishes:text('dishes').notNull(),createdAt:text('created_at').notNull(),closesAt:text('closes_at').notNull(),closed:integer('closed').notNull().default(0)});
+export const responses=sqliteTable('responses',{seq:integer('seq').primaryKey({autoIncrement:true}),id:text('id').notNull().unique(),surveyId:text('survey_id').notNull().references(()=>surveys.id),nonce:text('nonce').notNull(),dish:text('dish').notNull(),body:text('body').notNull(),createdAt:text('created_at').notNull()},t=>[uniqueIndex('response_once').on(t.surveyId,t.nonce),index('response_survey').on(t.surveyId)]);
+export const rateLimits=sqliteTable('rate_limits',{id:text('id').primaryKey(),count:integer('count').notNull(),expires:integer('expires').notNull()});

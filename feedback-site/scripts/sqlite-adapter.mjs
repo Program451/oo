@@ -1,0 +1,2 @@
+// The service uses the same parameterized SQL on D1 and on persistent SQLite.
+export function d1Adapter(sqlite){return {prepare(sql){let args=[];const stmt={bind(...values){args=values;return stmt;},async first(){return sqlite.prepare(sql).get(...args)||null;},async all(){return {results:sqlite.prepare(sql).all(...args)};},async run(){const r=sqlite.prepare(sql).run(...args);return {success:true,meta:{changes:Number(r.changes),last_row_id:Number(r.lastInsertRowid)},results:[]};}};return stmt;}};}

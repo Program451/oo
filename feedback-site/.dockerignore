@@ -1,0 +1,7 @@
+*
+!Dockerfile
+!dist-node/
+!dist-node/**
+!scripts/
+!scripts/server-node.mjs
+!scripts/sqlite-adapter.mjs

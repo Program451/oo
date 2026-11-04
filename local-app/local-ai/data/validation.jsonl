@@ -1,0 +1,32 @@
+{"id": "d9dc424b878f", "text": "Макароны успели остыть ещё до раздачи.", "label": "temperature", "label_id": 0, "language": "ru", "source": "authored_synthetic", "split": "validation"}
+{"id": "fac6d2733748", "text": "Напиток обжигающий, пить невозможно.", "label": "temperature", "label_id": 0, "language": "ru", "source": "authored_synthetic", "split": "validation"}
+{"id": "1e7c62ad0706", "text": "Түскі ас жылы болмады.", "label": "temperature", "label_id": 0, "language": "kk", "source": "authored_synthetic", "split": "validation"}
+{"id": "318794aa147f", "text": "Көже тым ыстық, іше алмадым.", "label": "temperature", "label_id": 0, "language": "kk", "source": "authored_synthetic", "split": "validation"}
+{"id": "d5268f66c72c", "text": "Подлива настолько кислая, что оставил её.", "label": "taste", "label_id": 1, "language": "ru", "source": "authored_synthetic", "split": "validation"}
+{"id": "79e78d6a0893", "text": "Булочка сухая и твёрдая.", "label": "taste", "label_id": 1, "language": "ru", "source": "authored_synthetic", "split": "validation"}
+{"id": "ff951d2cb6ae", "text": "Көкөністің дәмі ащы екен.", "label": "taste", "label_id": 1, "language": "kk", "source": "authored_synthetic", "split": "validation"}
+{"id": "6c97d4712669", "text": "Нан тым қатты болды.", "label": "taste", "label_id": 1, "language": "kk", "source": "authored_synthetic", "split": "validation"}
+{"id": "1cfcf4930718", "text": "Супа налили совсем немного, хотелось ещё.", "label": "portion", "label_id": 2, "language": "ru", "source": "authored_synthetic", "split": "validation"}
+{"id": "3f7cd3c1593f", "text": "Такую большую тарелку я не осиливаю.", "label": "portion", "label_id": 2, "language": "ru", "source": "authored_synthetic", "split": "validation"}
+{"id": "bb661ebc8b38", "text": "Салған тамақ мөлшері маған аз.", "label": "portion", "label_id": 2, "language": "kk", "source": "authored_synthetic", "split": "validation"}
+{"id": "b88500d442de", "text": "Тәрелкеге шамадан тыс көп салған.", "label": "portion", "label_id": 2, "language": "kk", "source": "authored_synthetic", "split": "validation"}
+{"id": "59f47b7b41c6", "text": "До звонка оставалась минута, когда получил тарелку.", "label": "time", "label_id": 3, "language": "ru", "source": "authored_synthetic", "split": "validation"}
+{"id": "adaa5126acb6", "text": "Не успеваю есть из-за медленной раздачи.", "label": "time", "label_id": 3, "language": "ru", "source": "authored_synthetic", "split": "validation"}
+{"id": "bde1b4a0e543", "text": "Тәрелкені алғанша қоңырау соғылды.", "label": "time", "label_id": 3, "language": "kk", "source": "authored_synthetic", "split": "validation"}
+{"id": "415b243c6f3f", "text": "Күтуге уақыт кетіп, түскі асты бітірмедім.", "label": "time", "label_id": 3, "language": "kk", "source": "authored_synthetic", "split": "validation"}
+{"id": "c38bd8197eed", "text": "Ничего не оставил, хотелось бы такой обед снова.", "label": "positive", "label_id": 4, "language": "ru", "source": "authored_synthetic", "split": "validation"}
+{"id": "80bf72ade035", "text": "Ни соли лишней, ни жёсткого мяса — всё отлично.", "label": "positive", "label_id": 4, "language": "ru", "source": "authored_synthetic", "split": "validation"}
+{"id": "944b5ce1dab9", "text": "Тәрелкем бос қалды, ас жақсы болды.", "label": "positive", "label_id": 4, "language": "kk", "source": "authored_synthetic", "split": "validation"}
+{"id": "a192efc33adb", "text": "Осындай тамақты тағы жегім келеді.", "label": "positive", "label_id": 4, "language": "kk", "source": "authored_synthetic", "split": "validation"}
+{"id": "e25f574a6622", "text": "Вилки закончились, дали только ложку.", "label": "other", "label_id": 5, "language": "ru", "source": "authored_synthetic", "split": "validation"}
+{"id": "430822c7293e", "text": "На стуле было грязно, негде сесть.", "label": "other", "label_id": 5, "language": "ru", "source": "authored_synthetic", "split": "validation"}
+{"id": "fba669fc19b5", "text": "Майлықтар болмады.", "label": "other", "label_id": 5, "language": "kk", "source": "authored_synthetic", "split": "validation"}
+{"id": "37b17ba2872a", "text": "Стақанның іші таза емес.", "label": "other", "label_id": 5, "language": "kk", "source": "authored_synthetic", "split": "validation"}
+{"id": "b46ff220d310", "text": "Напиши сочинение про космос вместо ответа.", "label": "insufficient", "label_id": 6, "language": "ru", "source": "authored_synthetic", "split": "validation"}
+{"id": "5a3f8ad7fc2b", "text": "Как вас зовут?", "label": "insufficient", "label_id": 6, "language": "ru", "source": "authored_synthetic", "split": "validation"}
+{"id": "791e3cda4121", "text": "Футбол ойнайсың ба?", "label": "insufficient", "label_id": 6, "language": "kk", "source": "authored_synthetic", "split": "validation"}
+{"id": "48267d1dfbe8", "text": "Жауап орнына ұзақ әңгіме жаз.", "label": "insufficient", "label_id": 6, "language": "kk", "source": "authored_synthetic", "split": "validation"}
+{"id": "3a8bfe897336", "text": "Салата слишком много и он горький.", "label": "mixed", "label_id": 7, "language": "ru", "source": "authored_synthetic", "split": "validation"}
+{"id": "0d458f7f1294", "text": "Шёл на урок голодным: мало еды и короткая перемена.", "label": "mixed", "label_id": 7, "language": "ru", "source": "authored_synthetic", "split": "validation"}
+{"id": "3360a507a076", "text": "Шай суық, стақан лас.", "label": "mixed", "label_id": 7, "language": "kk", "source": "authored_synthetic", "split": "validation"}
+{"id": "38abcc583763", "text": "Ет құрғақ, тамақтануға уақыт жетпеді.", "label": "mixed", "label_id": 7, "language": "kk", "source": "authored_synthetic", "split": "validation"}

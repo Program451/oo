@@ -1,0 +1,10 @@
+import {build} from 'esbuild';
+import {mkdir,readFile,writeFile,copyFile} from 'node:fs/promises';
+await mkdir('dist-node/public',{recursive:true});
+await build({stdin:{contents:'import React from "react";import {createRoot} from "react-dom/client";import Form from "./components/feedback-form";createRoot(document.getElementById("root")).render(<Form/>);',resolveDir:process.cwd(),loader:'tsx'},outfile:'dist-node/public/app.js',bundle:true,minify:true,format:'esm',platform:'browser',jsx:'automatic',define:{'process.env.NODE_ENV':'"production"'}});
+await build({entryPoints:['lib/feedback-service.ts'],outfile:'dist-node/service.mjs',bundle:true,format:'esm',platform:'node',target:'node24'});
+await copyFile('app/globals.css','dist-node/public/app.css');
+await copyFile('public/favicon.svg','dist-node/public/favicon.svg');
+await writeFile('dist-node/public/index.html','<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Asyl As — голос учеников</title><link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/app.css"></head><body><div id="root"></div><script type="module" src="/app.js"></script></body></html>');
+const schema=await readFile('scripts/schema.sql','utf8');await writeFile('dist-node/schema.sql',schema);
+console.log('Portable Node application built in dist-node/');
