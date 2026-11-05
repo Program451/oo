@@ -9,7 +9,7 @@ const origin='http://127.0.0.1:5176';
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 test('local API rejects foreign writes, validates values, and persists Unicode records',async()=>{
  let occupied=false;try{await fetch(origin,{signal:AbortSignal.timeout(1000)});occupied=true;}catch{}
- assert.equal(occupied,false,'Port 5174 is already in use; refusing to interfere');
+ assert.equal(occupied,false,'Port 5176 is already in use; refusing to interfere');
  const dir=path.resolve('outputs',`local-api-test-${Date.now()}`);await mkdir(dir,{recursive:true});
  let child;
  async function start(){
@@ -30,6 +30,12 @@ test('local API rejects foreign writes, validates values, and persists Unicode r
   r=await fetch(origin+'/api/data',{method:'POST',headers,body:JSON.stringify({kind:'meal',data:meal})});assert.equal(r.status,201);const saved=await r.json();
   await stop();await start();
   let data=await fetch(origin+'/api/data').then(r=>r.json());assert.equal(data.meals.length,1);assert.equal(data.meals[0].dish,meal.dish);
+  let analysisResponse=await fetch(origin+'/api/analyze',{method:'POST',headers,body:'{}'});assert.equal(analysisResponse.status,200);
+  let analysis=await analysisResponse.json();assert.equal(analysis.source,'rules');assert.equal('classifications' in analysis,false);assert.ok(analysis.summary.includes('Текстовых комментариев нет'));
+  const noText={date:'2026-11-05',dish:'Көже',rating:2,reason:'Температура',text:'',language:'kk'};
+  const reviewResponse=await fetch(origin+'/api/data',{method:'POST',headers,body:JSON.stringify({kind:'review',data:noText})});assert.equal(reviewResponse.status,201);const review=await reviewResponse.json();
+  analysisResponse=await fetch(origin+'/api/analyze',{method:'POST',headers,body:'{}'});assert.equal(analysisResponse.status,200);analysis=await analysisResponse.json();
+  assert.equal(analysis.source,'rules');assert.ok(analysis.recommendations.some(r=>r.evidenceIds.includes(review.id)));
   const backup=await fetch(origin+'/api/backup').then(r=>r.json());assert.equal(backup.data.meals.length,1);assert.equal('token' in backup,false);
   r=await fetch(origin+'/api/data?id='+saved.id,{method:'DELETE',headers:{Origin:origin}});assert.equal(r.status,200);
   data=await fetch(origin+'/api/data').then(r=>r.json());assert.equal(data.meals.length,0);

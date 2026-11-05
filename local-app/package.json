@@ -15,7 +15,8 @@
     "local:build": "node scripts/build-local.mjs",
     "local:start": "node scripts/start-local.mjs",
     "local:stop": "node scripts/stop-local.mjs",
-    "test:local": "node --test scripts/domain.test.mjs scripts/local-analysis.test.mjs scripts/feedback-bridge.test.mjs scripts/local-server.test.mjs"
+    "test:local": "node --test scripts/domain.test.mjs scripts/local-analysis.test.mjs scripts/feedback-bridge.test.mjs scripts/local-server.test.mjs",
+    "test:feedback-flow": "node --test scripts/feedback-flow.test.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

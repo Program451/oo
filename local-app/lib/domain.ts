@@ -26,3 +26,9 @@ export function localInsights(data:DataSet):Analysis{
 export function csvCell(value:unknown){let s=String(value??"");if(/^[=+@\-\t\r]/.test(s))s="'"+s;return '"'+s.replaceAll('"','""')+'"';}
 export function exportCsv(meals:Meal[]){return "\uFEFF"+[["Дата","Блюдо","Приём пищи","Приготовлено, кг","Выдано, кг","С тарелок, кг","Порций","Примечание"],...meals.map(m=>[m.date,m.dish,m.meal,m.preparedKg,m.servedKg,m.plateKg,m.portions,m.note])].map(row=>row.map(csvCell).join(";")).join("\r\n");}
 export function exportReviewsCsv(reviews:Review[]){return "\uFEFF"+[["Дата","Блюдо","Оценка","Причина","Отзыв","Язык"],...reviews.map(r=>[r.date,r.dish,r.rating,r.reason,r.text,r.language])].map(row=>row.map(csvCell).join(';')).join('\r\n');}
+export function exportPollCsv(survey:{id:string;title:string;dishes:string[];total:number;counts:{dish:string;total:number}[];createdAt:string;closesAt:string;closed:boolean},lastSync:string){
+ const closed=survey.closed||new Date(survey.closesAt).getTime()<=Date.now();
+ const rows:unknown[][]=[['Опрос','Идентификатор','Начало (UTC)','Окончание (UTC)','Статус','Данные загружены (UTC)','Блюдо','Голосов','Доля, %','Всего ответов']];
+ for(const dish of survey.dishes){const count=survey.counts.find(c=>c.dish===dish)?.total||0;rows.push([survey.title,survey.id,survey.createdAt,survey.closesAt,closed?'Завершён':'Открыт',lastSync||'Ещё не загружались',dish,count,survey.total?Math.round(count/survey.total*10000)/100:0,survey.total]);}
+ return '\uFEFF'+rows.map(row=>row.map(csvCell).join(';')).join('\r\n');
+}

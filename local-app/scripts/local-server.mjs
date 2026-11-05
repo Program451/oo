@@ -5,7 +5,7 @@ import {createHash,randomUUID} from 'node:crypto';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createFeedbackBridge} from './feedback-bridge.mjs';
-import {demoData,mealSchema,reviewSchema,experimentSchema,composeLocalAnalysis} from '../local-dist/domain.mjs';
+import {demoData,mealSchema,reviewSchema,experimentSchema,composeLocalAnalysis,localInsights,exportPollCsv} from '../local-dist/domain.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const port=Number(process.env.ASYL_LOCAL_PORT||5174),origin=`http://127.0.0.1:${port}`;
@@ -50,6 +50,12 @@ const server=createServer(async(req,res)=>{
     if(url.pathname==='/api/feedback/sync'&&req.method==='POST')return json(res,200,await feedback.sync());
     if(url.pathname==='/api/feedback/surveys'&&req.method==='POST')return json(res,201,await feedback.create(await jsonBody(req)));
     if(url.pathname==='/api/feedback/surveys'&&req.method==='PATCH')return json(res,200,await feedback.close((await jsonBody(req)).id));
+    if(url.pathname==='/api/feedback/results.csv'&&req.method==='GET'){
+     const state=await feedback.status(),survey=state.surveys.find(s=>s.id===url.searchParams.get('id'));
+     if(!survey||survey.kind!=='poll')return json(res,404,{error:'Голосование не найдено'});
+     res.writeHead(200,{'Content-Type':'text/csv; charset=utf-8','Content-Disposition':`attachment; filename="asyl-as-poll-${survey.id}.csv"`,'Cache-Control':'no-store'});
+     return res.end(exportPollCsv(survey,state.lastSync));
+    }
     if(['/api/feedback/qr','/api/feedback/poster'].includes(url.pathname)&&req.method==='GET'){
      const {survey,url:link,svg}=await feedback.qr(url.searchParams.get('id'));
      if(url.pathname.endsWith('/qr')){res.writeHead(200,{'Content-Type':'image/svg+xml','Cache-Control':'no-store'});return res.end(svg);}
@@ -66,8 +72,9 @@ const server=createServer(async(req,res)=>{
    if(b.from&&b.to&&b.from>b.to)return json(res,400,{error:'Начало периода позже окончания'});
    data={...data,meals:data.meals.filter(x=>(!b.from||x.date>=b.from)&&(!b.to||x.date<=b.to)),reviews:data.reviews.filter(x=>(!b.from||x.date>=b.from)&&(!b.to||x.date<=b.to))};
    if(!data.meals.length&&!data.reviews.length)return json(res,400,{error:'Добавьте измерения или отзывы'});
-   const health=await modelHealth();if(!health.ready)return json(res,503,{error:'Локальная модель ещё не запущена. Откройте Start-Asyl-Local.cmd и дождитесь загрузки.'});
    const reviews=data.reviews.filter(x=>x.text.trim()).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,24).map(({id,text})=>({id,text:text.slice(0,300)}));
+   if(!reviews.length){const analysis=localInsights(data);return json(res,200,{...analysis,summary:'Текстовых комментариев нет. '+analysis.summary,limitations:['Оценки, выбранные причины и измерения разобраны по правилам программы; модель классификации текста не запускалась.',...analysis.limitations]});}
+   const health=await modelHealth();if(!health.ready)return json(res,503,{error:'Локальная модель ещё не запущена. Откройте Start-Asyl-Local.cmd и дождитесь загрузки.'});
    const hash=createHash('sha256').update(JSON.stringify({data,adapter:health.training?.adapterSha256,reviewRequired:health.reviewRequired,version:2})).digest('hex');const cached=db.prepare('SELECT body FROM cache WHERE id=?').get(hash);if(cached)return json(res,200,{...JSON.parse(cached.body),cached:true});
    analyzing=true;
    try{

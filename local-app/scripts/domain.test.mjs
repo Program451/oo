@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {metrics,compareExperiment,mealSchema,reviewSchema,experimentSchema,exportCsv,localInsights} from '../lib/domain.ts';
+import {metrics,compareExperiment,mealSchema,reviewSchema,experimentSchema,exportCsv,exportPollCsv,localInsights} from '../lib/domain.ts';
 const row={id:'one',date:'2026-11-01',dish:'Рис',meal:'Обед',preparedKg:20,servedKg:15,plateKg:3,portions:100,note:''};
 test('weighted grams use total portions, not average of daily averages',()=>{const m=metrics([row,{...row,id:'two',plateKg:1,portions:10}]);assert.equal(m.grams,4000/110);assert.equal(m.unserved,10);assert.equal(m.plates,4);});
 test('empty dataset does not invent success or divide by zero',()=>{assert.equal(metrics([]).grams,0);assert.equal(localInsights({meals:[],reviews:[],experiments:[]}).recommendations.length,0);});
@@ -11,3 +11,8 @@ test('experiment uses only matching dish and nonoverlapping periods',()=>{assert
 test('missing after period gives no fabricated improvement',()=>assert.equal(compareExperiment(experiment,[row]).change,null));
 test('CSV preserves Cyrillic, escapes quotes and neutralizes formulas',()=>{const csv=exportCsv([{...row,dish:'=SUM(1,2)',note:'"Комментарий"'}]);assert.ok(csv.startsWith('\uFEFF'));assert.ok(csv.includes("'=SUM"));assert.ok(csv.includes('""Комментарий""'));});
 test('heuristic recommendations identify real source records',()=>{const a=localInsights({meals:[row],reviews:[],experiments:[]});assert.equal(a.source,'rules');assert.ok(a.recommendations.every(r=>r.evidenceIds.every(id=>id==='one')));assert.ok(a.recommendations.some(r=>r.observation.includes('не подтверждённые отходы')));});
+test('poll CSV includes zero-vote choices, snapshot time and formula-safe labels',()=>{
+ const survey={id:'poll',title:'=SUM(1,2)',dishes:['Көже','Рис'],total:3,counts:[{dish:'Рис',total:3}],createdAt:'2026-11-01T00:00:00Z',closesAt:'2026-11-02T00:00:00Z',closed:true};
+ const csv=exportPollCsv(survey,'2026-11-03T10:00:00Z');assert.ok(csv.startsWith('\uFEFF'));assert.ok(csv.includes("'=SUM(1,2)"));assert.ok(csv.includes('"Көже";"0";"0";"3"'));assert.ok(csv.includes('"Рис";"3";"100";"3"'));assert.ok(csv.includes('2026-11-03T10:00:00Z'));assert.ok(csv.includes('Завершён'));
+ const empty=exportPollCsv({...survey,total:0,counts:[]},'');assert.ok(!/NaN|Infinity/.test(empty));assert.ok(empty.includes('Ещё не загружались'));
+});
