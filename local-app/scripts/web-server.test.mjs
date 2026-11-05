@@ -1,0 +1,41 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {spawn} from 'node:child_process';
+import {once} from 'node:events';
+import {createHash,randomBytes} from 'node:crypto';
+import {mkdir,mkdtemp} from 'node:fs/promises';
+import path from 'node:path';
+const publicOrigin='https://cabinet.test',origin='http://127.0.0.1:5193';
+const hash=value=>createHash('sha256').update(value).digest('hex');
+test('hosted cabinet protects records and delegates analysis only to the laptop',async()=>{
+ let occupied=false;try{await fetch(origin,{signal:AbortSignal.timeout(500)});occupied=true;}catch{}assert.equal(occupied,false,'Test port is occupied');
+ await mkdir('outputs',{recursive:true});const dir=await mkdtemp(path.resolve('outputs/web-api-'));
+ const code=randomBytes(32).toString('hex'),worker=randomBytes(32).toString('hex');
+ const child=spawn(process.execPath,['scripts/local-server.mjs'],{cwd:path.resolve('outputs/hosted-app'),env:{...process.env,ASYL_PUBLIC_ORIGIN:publicOrigin,ASYL_LOGIN_HASH:hash(code),ASYL_WORKER_HASH:hash(worker),ASYL_FEEDBACK_TOKEN:'f'.repeat(64),ASYL_FEEDBACK_URL:'https://feedback.test',ASYL_LOCAL_PORT:'5193',ASYL_LOCAL_DATA:dir},windowsHide:true,stdio:'pipe'});
+ let diagnostic='';child.stderr.on('data',d=>diagnostic+=d);child.stdout.resume();
+ const call=(route,method='GET',body,headers={})=>fetch(origin+route,{method,redirect:'manual',headers:{Host:'cabinet.test',...(body!==undefined?{'Content-Type':'application/json'}:{}),...headers},body:body===undefined?undefined:JSON.stringify(body)});
+ try{
+  let ready=false;for(let i=0;i<60;i++){try{if((await call('/healthz')).ok){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,100));}assert.equal(ready,true,diagnostic);
+  assert.equal((await call('/')).status,303);assert.equal((await call('/api/data')).status,401);assert.equal((await call('/api/backup')).status,401);
+  assert.match(await call('/login').then(r=>r.text()),/Кабинет исследователя/);
+  assert.equal((await call('/api/login','POST',{code},{Origin:'https://foreign.test'})).status,403);
+  const logged=await call('/api/login','POST',{code},{Origin:publicOrigin});assert.equal(logged.status,200);
+  const Cookie=logged.headers.get('set-cookie').split(';')[0],browser={Cookie,Origin:publicOrigin};
+  assert.equal((await call('/api/status','GET',undefined,browser).then(r=>r.json())).modelReady,false);
+  const saved=await call('/api/data','POST',{kind:'review',data:{date:'2026-11-05',dish:'Көже',rating:2,reason:'Температура',text:'Учебная проверка: суп был холодный',language:'ru'}},browser);assert.equal(saved.status,201);const review=await saved.json();
+  assert.equal((await call('/api/analyze','POST',{},browser)).status,503);
+  const workerHeaders={Authorization:'Bearer '+worker};
+  const health={ready:true,model:'multilingual-e5-small · Asyl As',training:{train:128,validation:32,test:64,baselineAccuracy:53/64,trainedAccuracy:55/64,macroF1:.77,adapterSha256:'f'.repeat(64)}};
+  assert.equal((await call('/api/worker/poll','POST',{health})).status,403);
+  assert.equal((await call('/api/worker/poll','POST',{health},workerHeaders)).status,200);
+  assert.equal((await call('/api/data','GET',undefined,workerHeaders)).status,401);
+  const pending=call('/api/analyze','POST',{},browser);
+  let job;for(let i=0;i<20;i++){job=(await call('/api/worker/poll','POST',{health},workerHeaders).then(r=>r.json())).job;if(job)break;await new Promise(r=>setTimeout(r,100));}assert.ok(job);assert.equal(job.reviews[0].id,review.id);
+  assert.equal((await call('/api/worker/result','POST',{id:job.id,lease:job.lease,classifications:[{id:review.id,label:'complaint'}]},workerHeaders)).status,200);
+  const response=await pending;assert.equal(response.status,200);const analysis=await response.json();assert.equal(analysis.reviewRequired,true);assert.equal(analysis.classifications[0].label,'complaint');assert.ok(analysis.limitations.some(s=>s.includes('ноутбуке')));
+  const report=await call('/training','GET',undefined,browser).then(r=>r.text());assert.ok(report.includes('Мы дообучили модель'));assert.ok(!report.includes('Обучение ещё не завершено'));
+  const backup=await call('/api/backup','GET',undefined,browser).then(r=>r.text());assert.equal(backup.includes(worker),false);assert.equal(backup.includes(code),false);
+  assert.equal((await call('/api/shutdown','POST',{},browser)).status,404);
+  assert.equal((await call('/api/logout','POST',{},browser)).status,200);assert.equal((await call('/api/data','GET',undefined,browser)).status,401);
+ }finally{if(child.exitCode===null&&child.signalCode===null){const done=once(child,'exit');child.kill();await done;}}
+});

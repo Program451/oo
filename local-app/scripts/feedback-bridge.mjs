@@ -3,13 +3,13 @@ import path from 'node:path';
 import QRCode from 'qrcode';
 import {reviewSchema} from '../local-dist/domain.mjs';
 
-export function createFeedbackBridge(db,dataDir){
+export function createFeedbackBridge(db,dataDir,connection){
  db.exec('CREATE TABLE IF NOT EXISTS feedback_surveys(id TEXT PRIMARY KEY,body TEXT NOT NULL); CREATE TABLE IF NOT EXISTS feedback_imports(id TEXT PRIMARY KEY,seq INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS feedback_votes(id TEXT PRIMARY KEY,survey_id TEXT NOT NULL,body TEXT NOT NULL); CREATE TABLE IF NOT EXISTS settings(id TEXT PRIMARY KEY,value TEXT NOT NULL);');
  const get=(id,fallback='')=>db.prepare('SELECT value FROM settings WHERE id=?').get(id)?.value??fallback;
  const set=(id,value)=>db.prepare('INSERT OR REPLACE INTO settings VALUES(?,?)').run(id,String(value));
  const surveys=()=>db.prepare('SELECT body FROM feedback_surveys').all().map(x=>JSON.parse(x.body)).sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
  let syncing=false;
- async function config(){try{const c=JSON.parse(await readFile(path.join(dataDir,'feedback-connection.json'),'utf8'));const u=new URL(c.url);if(u.protocol!=='https:'||u.username||u.password||u.pathname!=='/'||u.search||u.hash||!/^[a-f0-9]{64}$/.test(c.token))throw new Error('invalid');return {url:u.origin,token:c.token};}catch{return null;}}
+ async function config(){try{const c=connection||JSON.parse(await readFile(path.join(dataDir,'feedback-connection.json'),'utf8'));const u=new URL(c.url);if(u.protocol!=='https:'||u.username||u.password||u.pathname!=='/'||u.search||u.hash||!/^[a-f0-9]{64}$/.test(c.token))throw new Error('invalid');return {url:u.origin,token:c.token};}catch{return null;}}
  async function remote(route,method='GET',body){const c=await config();if(!c)throw new Error('Подключение сайта ещё не настроено');let r;try{r=await fetch(c.url+route,{method,headers:{Authorization:`Bearer ${c.token}`,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,redirect:'error',signal:AbortSignal.timeout(20000)});}catch{throw new Error('Нет связи с сайтом отзывов. Проверьте интернет; локальные данные сохранены.');}const text=await r.text();if(text.length>2000000)throw new Error('Слишком большой ответ сайта');let d;try{d=JSON.parse(text);}catch{throw new Error('Сайт вернул неверный ответ. Проверьте подключение.');}if(!r.ok)throw new Error(d.error||`Ошибка сайта: ${r.status}`);return d;}
  function saveSurvey(s){if(!s||!isUuid(s.id)||!['poll','feedback'].includes(s.kind)||!Array.isArray(s.dishes)||typeof s.title!=='string')throw new Error('Некорректный опрос с сайта');db.prepare('INSERT OR REPLACE INTO feedback_surveys VALUES(?,?)').run(s.id,JSON.stringify(s));}
  async function status(){const c=await config();return {configured:!!c,url:c?.url||'',surveys:surveys(),lastSync:get('feedback.lastSync'),syncing,importedReviews:Number(get('feedback.reviewCount','0')),importedVotes:Number(get('feedback.voteCount','0'))};}

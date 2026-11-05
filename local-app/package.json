@@ -1,6 +1,6 @@
 {
-  "name": "site-creator-vinext-starter",
-  "version": "0.1.0",
+  "name": "asyl-as-research",
+  "version": "0.3.0",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
@@ -16,7 +16,9 @@
     "local:start": "node scripts/start-local.mjs",
     "local:stop": "node scripts/stop-local.mjs",
     "test:local": "node --test scripts/domain.test.mjs scripts/local-analysis.test.mjs scripts/feedback-bridge.test.mjs scripts/local-server.test.mjs",
-    "test:feedback-flow": "node --test scripts/feedback-flow.test.mjs"
+    "test:feedback-flow": "node --test scripts/feedback-flow.test.mjs",
+    "build:web": "node scripts/build-web.mjs",
+    "test:web": "node --test scripts/web-auth.test.mjs scripts/remote-inference.test.mjs scripts/web-server.test.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
