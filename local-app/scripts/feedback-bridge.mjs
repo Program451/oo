@@ -8,13 +8,17 @@ export function createFeedbackBridge(db,dataDir,connection){
  const get=(id,fallback='')=>db.prepare('SELECT value FROM settings WHERE id=?').get(id)?.value??fallback;
  const set=(id,value)=>db.prepare('INSERT OR REPLACE INTO settings VALUES(?,?)').run(id,String(value));
  const surveys=()=>db.prepare('SELECT body FROM feedback_surveys').all().map(x=>JSON.parse(x.body)).sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
- let syncing=false;
+ let syncing=false,inFlight=null;
  async function config(){try{const c=connection||JSON.parse(await readFile(path.join(dataDir,'feedback-connection.json'),'utf8'));const u=new URL(c.url);if(u.protocol!=='https:'||u.username||u.password||u.pathname!=='/'||u.search||u.hash||!/^[a-f0-9]{64}$/.test(c.token))throw new Error('invalid');return {url:u.origin,token:c.token};}catch{return null;}}
  async function remote(route,method='GET',body){const c=await config();if(!c)throw new Error('Подключение сайта ещё не настроено');let r;try{r=await fetch(c.url+route,{method,headers:{Authorization:`Bearer ${c.token}`,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,redirect:'error',signal:AbortSignal.timeout(20000)});}catch{throw new Error('Нет связи с сайтом отзывов. Проверьте интернет; локальные данные сохранены.');}const text=await r.text();if(text.length>2000000)throw new Error('Слишком большой ответ сайта');let d;try{d=JSON.parse(text);}catch{throw new Error('Сайт вернул неверный ответ. Проверьте подключение.');}if(!r.ok)throw new Error(d.error||`Ошибка сайта: ${r.status}`);return d;}
  function saveSurvey(s){if(!s||!isUuid(s.id)||!['poll','feedback'].includes(s.kind)||!Array.isArray(s.dishes)||typeof s.title!=='string')throw new Error('Некорректный опрос с сайта');db.prepare('INSERT OR REPLACE INTO feedback_surveys VALUES(?,?)').run(s.id,JSON.stringify(s));}
  async function status(){const c=await config();return {configured:!!c,url:c?.url||'',surveys:surveys(),lastSync:get('feedback.lastSync'),syncing,importedReviews:Number(get('feedback.reviewCount','0')),importedVotes:Number(get('feedback.voteCount','0'))};}
- async function sync(){
-  if(syncing)throw new Error('Синхронизация уже выполняется');syncing=true;let addedReviews=0,addedVotes=0;
+ function sync(){
+  if(inFlight)return inFlight;
+  inFlight=syncOnce().finally(()=>{inFlight=null;});return inFlight;
+ }
+ async function syncOnce(){
+  syncing=true;let addedReviews=0,addedVotes=0;
   try{
    const list=await remote('/api/admin/surveys');if(!Array.isArray(list.surveys))throw new Error('Некорректный список опросов');
    db.exec('BEGIN');try{for(const s of list.surveys)saveSurvey(s);db.exec('COMMIT');}catch(e){db.exec('ROLLBACK');throw e;}
